@@ -1,0 +1,28 @@
+version: "3.7"
+services:
+  server1:
+    image: libp2p-ping-example:latest
+    working_dir: /usr/src/app
+    expose:
+      - 3000
+    networks:
+      ping_network:
+        ipv4_address: 172.160.10.2
+
+  server2:
+    image: libp2p-ping-example:latest
+    working_dir: /usr/src/app
+    expose:
+      - 3000
+    command: "/ip4/172.160.10.2/tcp/3000" #pass argument to entrypoint
+    networks:
+      ping_network:
+        ipv4_address: 172.160.10.4
+    depends_on:
+      - server1
+
+networks:
+  ping_network:
+    ipam:
+      config:
+        - subnet: 172.160.10.0/24
