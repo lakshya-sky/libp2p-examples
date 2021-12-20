@@ -2,8 +2,9 @@ use crate::{
     node::{Node, NodeConfig},
     p2p::P2PConfigBuilder,
 };
+use async_std::task;
 use libp2p::Multiaddr;
-use std::error::Error;
+use std::{error::Error, time::Duration};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -33,7 +34,9 @@ pub async fn init_using_args() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
     let config = node_config_from_args(&opt);
     let mut node = Node::new(config)?;
-    println!("Node created!");
     node.start().await?;
+    println!("Node running!");
+    task::sleep(Duration::from_millis(5000)).await;
+    node.stop().await;
     Ok(())
 }

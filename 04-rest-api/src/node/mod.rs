@@ -1,9 +1,13 @@
 use crate::p2p::{P2PConfig, P2PServer};
-use libp2p::Multiaddr;
 mod error;
 mod rpc_server;
 use error::*;
 use rpc_server::*;
+use tokio::sync::oneshot;
+
+enum NodeSignal {
+    StopHttp,
+}
 
 pub enum TransportType {
     Tcp,
@@ -42,7 +46,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(config: NodeConfig) -> NodeResult<Self> {
-        let http = HttpServer::default();
+        let http = HttpServer::new(config.http_host.clone(), config.http_port);
         Ok(Node {
             http,
             server: P2PServer::new(config.p2p.clone())?,
@@ -65,7 +69,7 @@ impl Node {
         }
     }
 
-    async fn stop(&mut self) {
+    pub async fn stop(&mut self) {
         self.server_start_stop_lock.lock().await;
         match self.state {
             NodeState::Init => {}

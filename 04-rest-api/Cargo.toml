@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 async-std = "1.10"
 tide = "0.16.0"
+hyper = { version = "0.14", features = ["full"] }
 structopt = "0.3"
 tide-websockets = "0.4"
 libp2p = { version = "0.40.0", features = ["tcp-tokio"] }
