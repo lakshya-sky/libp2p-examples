@@ -6,15 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ctrlc = "3.2.1"
 async-std = "1.10"
-tide = "0.16.0"
-hyper = { version = "0.14", features = ["full"] }
 structopt = "0.3"
 tide-websockets = "0.4"
 libp2p = { version = "0.40.0", features = ["tcp-tokio"] }
 futures = { version = "0.3.18", features = ["executor"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+jsonrpc-http-server = "18.0.0"
 tokio = { version = "1.14.0", features = ["full"] }
 log = "0.4"
 pretty_env_logger = "0.4"

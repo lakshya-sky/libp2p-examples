@@ -34,9 +34,14 @@ pub async fn init_using_args() -> Result<(), Box<dyn Error>> {
     let opt = Opt::from_args();
     let config = node_config_from_args(&opt);
     let mut node = Node::new(config)?;
-    node.start().await?;
-    println!("Node running!");
-    task::sleep(Duration::from_millis(5000)).await;
+    let t = node.start().await;
+    match t {
+        Ok(_) => println!("node running"),
+        Err(_) => eprintln!("node failed to start"),
+    }
+    tokio::signal::ctrl_c().await?;
+    //Todo: make start return instantly currently execution is stuck there
+    //and is not printing below line.
     node.stop().await;
     Ok(())
 }

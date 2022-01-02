@@ -1,28 +1,24 @@
-use std::{convert::Infallible, net::SocketAddr};
+use std::net::SocketAddr;
 
 use super::error::NodeResult;
-use hyper::{
-    server::Server,
-    service::{make_service_fn, service_fn},
-    Body, Request, Response,
+use jsonrpc_http_server::ServerBuilder;
+use jsonrpc_http_server::{
+    jsonrpc_core::{IoHandler, Params, Value},
+    Server,
 };
-use tokio::sync::oneshot::{self, Receiver, Sender};
 
 pub struct HttpServer {
+    internal_server: Option<Server>,
     host: String,
     port: u16,
-    signal_reciever: Receiver<()>,
-    stop_sender: Sender<()>,
 }
 
 impl HttpServer {
     pub fn new(host: String, port: u16) -> Self {
-        let (tx, rx) = oneshot::channel();
         HttpServer {
+            internal_server: None,
             host,
             port,
-            stop_sender: tx,
-            signal_reciever: rx,
         }
     }
 
@@ -33,28 +29,25 @@ impl HttpServer {
     }
 
     pub async fn enable(&mut self) -> NodeResult<()> {
-        let make_service =
-            make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(hello_world)) });
         let socker_addr: SocketAddr =
             String::from(format!("{}:{}", self.host, self.port)).parse()?;
-        let server = Server::bind(&socker_addr).serve(make_service);
-        let server = server.with_graceful_shutdown(self.handle_shutdown());
-        Ok(server.await?)
-    }
-
-    async fn handle_shutdown(&mut self) {
-        let t = &mut self.signal_reciever;
-        t.await.ok();
+        let mut io = IoHandler::default();
+        io.add_method("hello", |_params: Params| async {
+            Ok(Value::String("hello".to_owned()))
+        });
+        let server = ServerBuilder::new(io)
+            .threads(1)
+            .start_http(&socker_addr)
+            .unwrap();
+        self.internal_server = Some(server);
+        Ok(())
     }
 
     pub async fn stop(&mut self) {
         self.host = "".to_string();
         self.port = 0;
-        self.handle_shutdown().await;
+        let internal_server = self.internal_server.take();
+        tokio::task::spawn_blocking(|| drop(internal_server));
         println!("Successfully shutdown!");
     }
-}
-
-async fn hello_world(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    Ok(Response::new("Hello, World".into()))
 }

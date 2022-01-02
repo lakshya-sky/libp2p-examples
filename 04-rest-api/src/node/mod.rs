@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use crate::p2p::{P2PConfig, P2PServer};
 mod error;
 mod rpc_server;
 use error::*;
 use rpc_server::*;
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, Mutex};
 
 enum NodeSignal {
     StopHttp,
@@ -30,6 +32,7 @@ impl NodeConfig {
     }
 }
 
+#[derive(Debug)]
 enum NodeState {
     Init,
     Running,
@@ -37,7 +40,6 @@ enum NodeState {
 }
 
 pub struct Node {
-    server_start_stop_lock: async_std::sync::Mutex<()>,
     config: NodeConfig,
     server: P2PServer,
     http: HttpServer,
@@ -46,18 +48,19 @@ pub struct Node {
 
 impl Node {
     pub fn new(config: NodeConfig) -> NodeResult<Self> {
-        let http = HttpServer::new(config.http_host.clone(), config.http_port);
+        let http = HttpServer::new(
+            config.http_host.clone(),
+            config.http_port,
+        );
         Ok(Node {
             http,
             server: P2PServer::new(config.p2p.clone())?,
             config,
-            server_start_stop_lock: Default::default(),
             state: NodeState::Init,
         })
     }
 
     pub async fn start(&mut self) -> NodeResult<()> {
-        self.server_start_stop_lock.lock().await;
         match self.state {
             NodeState::Running => Err(Box::new(NodeError::NodeRunning)),
             NodeState::Closed => Err(Box::new(NodeError::NodeStopped)),
@@ -70,7 +73,6 @@ impl Node {
     }
 
     pub async fn stop(&mut self) {
-        self.server_start_stop_lock.lock().await;
         match self.state {
             NodeState::Init => {}
             NodeState::Running => {

@@ -253,19 +253,6 @@ pub async fn generate_mdns() -> Result<Mdns, Box<dyn Error>> {
     Ok(Mdns::new(Default::default()).await?)
 }
 
-pub fn config_transport(local_key: &identity::Keypair) -> Boxed<(PeerId, StreamMuxerBox)> {
-    let noise_keys = noise::Keypair::<noise::X25519Spec>::new()
-        .into_authentic(local_key)
-        .expect("Signing libp2p-noise static DH keypair failed.");
-    let transport = TokioTcpConfig::new()
-        .nodelay(true)
-        .upgrade(upgrade::Version::V1)
-        .authenticate(noise::NoiseConfig::xx(noise_keys).into_authenticated())
-        .multiplex(mplex::MplexConfig::new())
-        .boxed();
-    transport
-}
-
 pub fn generate_floodsub_topic(name: &str) -> floodsub::Topic {
     floodsub::Topic::new(name)
 }
